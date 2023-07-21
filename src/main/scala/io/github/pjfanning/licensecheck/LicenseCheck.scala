@@ -18,6 +18,7 @@ import scala.io.Source
 )
 class LicenseCheck extends Callable[Unit] {
   val aslText = "Licensed to the Apache Software Foundation (ASF)"
+  val aslText2 = "Licensed under the Apache License"
 
   @Parameters(
     index = "0",
@@ -30,7 +31,7 @@ class LicenseCheck extends Callable[Unit] {
       throw new RuntimeException(s"Not a directory: ${dir.getAbsolutePath}")
     }
     val map = mutable.Map[String, Seq[String]]()
-    scanDir(s"${dir.getAbsolutePath}${File.pathSeparator}", dir, map)
+    scanDir(s"${dir.getAbsolutePath}${File.separator}", dir, map)
     println("Results:")
     map.foreach { case (key, fileNames) =>
       println()
@@ -65,19 +66,21 @@ class LicenseCheck extends Callable[Unit] {
   private def findCopyrightLines(file: File): Option[Seq[String]] = {
     val lineIter = Source.fromFile(file, StandardCharsets.UTF_8.name()).getLines()
     val buffer = mutable.Buffer[String]()
-    var apacheLicensed = false
+    var apacheLicenseText: Option[String] = None
     while(lineIter.hasNext) {
       val line = lineIter.next()
       val trimmed = ltrim(line)
       if (isCommentLine(trimmed)) {
         if (trimmed.toLowerCase.contains("copyright"))
           buffer.append(trimmed.trim)
-        if (!apacheLicensed && trimmed.contains(aslText))
-          apacheLicensed = true
+        if (apacheLicenseText.isEmpty) {
+          if (trimmed.contains(aslText)) apacheLicenseText = Some(aslText)
+          else if (trimmed.contains(aslText2)) apacheLicenseText = Some(aslText2)
+        }
       }
     }
-    if (apacheLicensed) {
-      buffer.prepend(aslText)
+    apacheLicenseText.foreach { text =>
+      buffer.prepend(text)
     }
     Option.when(buffer.nonEmpty)(buffer.toSeq)
   }
