@@ -59,7 +59,7 @@ class LicenseCheck extends Callable[Unit] {
 
   private def shouldCheckFile(file: File): Boolean = {
     val name = file.getName
-    name.endsWith(".scala") || name.endsWith(".java") || name.endsWith(".sbt")
+    name.endsWith(".scala") || name.endsWith(".java") || name.endsWith(".sbt") || name.endsWith(".template")
   }
 
   private def findCopyrightLines(file: File): Seq[String] = {
