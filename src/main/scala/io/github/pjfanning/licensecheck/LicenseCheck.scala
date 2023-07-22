@@ -46,13 +46,12 @@ class LicenseCheck extends Callable[Unit] {
       if (file.isDirectory) {
         scanDir(basePath, file, map)
       } else if (shouldCheckFile(file)) {
-        findCopyrightLines(file).foreach { matches =>
-          val key = matches.mkString(System.lineSeparator())
-          val path = removePrefix(basePath, file.getAbsolutePath)
-          map.get(key) match {
-            case Some(fileNames) => map.put(key, fileNames :+ path)
-            case _ => map.put(key, Seq(path))
-          }
+        val matches = findCopyrightLines(file)
+        val key = if (matches.isEmpty) "No License" else matches.mkString(System.lineSeparator())
+        val path = removePrefix(basePath, file.getAbsolutePath)
+        map.get(key) match {
+          case Some(fileNames) => map.put(key, fileNames :+ path)
+          case _ => map.put(key, Seq(path))
         }
       }
     }
@@ -63,7 +62,7 @@ class LicenseCheck extends Callable[Unit] {
     name.endsWith(".scala") || name.endsWith(".java") || name.endsWith(".sbt")
   }
 
-  private def findCopyrightLines(file: File): Option[Seq[String]] = {
+  private def findCopyrightLines(file: File): Seq[String] = {
     val lineIter = Source.fromFile(file, StandardCharsets.UTF_8.name()).getLines()
     val buffer = mutable.Buffer[String]()
     var apacheLicenseText: Option[String] = None
@@ -82,7 +81,7 @@ class LicenseCheck extends Callable[Unit] {
     apacheLicenseText.foreach { text =>
       buffer.prepend(text)
     }
-    Option.when(buffer.nonEmpty)(buffer.toSeq)
+    buffer.toSeq
   }
 
   private def ltrim(s: String) = s.replaceAll("^\\s+", "")
